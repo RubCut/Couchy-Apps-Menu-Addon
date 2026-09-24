@@ -2,16 +2,25 @@
 <resources>
     <string name="app_name">Couchy Apps</string>
     <string name="apps_title">Apps</string>
-    <string name="search_hint">Zoek films, tv-programma\'s…</string>
+    <string name="apps_count">%1$d apps</string>
     <string name="get_more_apps">Meer apps downloaden</string>
     <string name="get_more_games">Meer games downloaden</string>
-    <string name="netflix_channel">Door Netflix aanbevolen</string>
-    <string name="tips_channel">Zo kunt u…</string>
-    <string name="youtube_channel">Aanbevolen</string>
+    <string name="hidden_apps_title">Verborgen apps</string>
+    <string name="hidden_apps_count">Verborgen (%1$d)</string>
+    <string name="hide_app">Verbergen uit menu</string>
+    <string name="unhide_app">Terugzetten in menu</string>
+    <string name="restore_all">Alles terugzetten</string>
+    <string name="open_app">Openen</string>
+    <string name="app_info">App-informatie</string>
+    <string name="cancel">Annuleren</string>
+    <string name="close">Sluiten</string>
+    <string name="app_hidden_toast">«%1$s» verborgen</string>
+    <string name="app_unhidden_toast">«%1$s» teruggezet</string>
+    <string name="all_apps_restored">Alle apps teruggezet</string>
+    <string name="no_hidden_apps">Geen verborgen apps</string>
     <string name="loading_apps">Apps laden…</string>
     <string name="refreshing">Apps vernieuwen…</string>
     <string name="empty_title">Geen apps gevonden</string>
     <string name="empty_message">Installeer een Android TV-app en deze verschijnt hier.</string>
     <string name="unable_to_open">Kan %1$s niet openen</string>
-    <string name="app_info">App-informatie</string>
 </resources>

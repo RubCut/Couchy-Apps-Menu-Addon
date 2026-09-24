@@ -10,8 +10,8 @@ import android.util.AttributeSet;
 import android.widget.FrameLayout;
 
 /**
- * A rounded card with Android TV focus scaling and white focus border.
- * Uses lightweight View/Canvas APIs with zero external dependencies.
+ * A rounded card with pronounced modern corner radius (20dp),
+ * smooth focus scaling (1.08x) and white focus ring.
  */
 public final class RoundedCardView extends FrameLayout {
     private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
@@ -28,7 +28,7 @@ public final class RoundedCardView extends FrameLayout {
 
     public RoundedCardView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        radius = density(context) * 8f;
+        radius = density(context) * 20f; // Prominently increased corner radius
         borderPaint.setStyle(Paint.Style.STROKE);
         borderPaint.setStrokeWidth(density(context) * 2.5f);
         borderPaint.setColor(Color.WHITE);

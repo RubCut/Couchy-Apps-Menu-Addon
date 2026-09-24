@@ -2,16 +2,25 @@
 <resources>
     <string name="app_name">Приложения Couchy</string>
     <string name="apps_title">Приложения</string>
-    <string name="search_hint">Поиск фильмов, передач и др.</string>
+    <string name="apps_count">%1$d приложений</string>
     <string name="get_more_apps">Ещё приложения</string>
     <string name="get_more_games">Ещё игры</string>
-    <string name="netflix_channel">Рекомендации Netflix</string>
-    <string name="tips_channel">Полезные советы</string>
-    <string name="youtube_channel">Рекомендации</string>
+    <string name="hidden_apps_title">Скрытые приложения</string>
+    <string name="hidden_apps_count">Скрытые (%1$d)</string>
+    <string name="hide_app">Скрыть из меню</string>
+    <string name="unhide_app">Вернуть в меню</string>
+    <string name="restore_all">Вернуть все</string>
+    <string name="open_app">Открыть</string>
+    <string name="app_info">О приложении</string>
+    <string name="cancel">Отмена</string>
+    <string name="close">Закрыть</string>
+    <string name="app_hidden_toast">Приложение «%1$s» скрыто</string>
+    <string name="app_unhidden_toast">Приложение «%1$s» возвращено</string>
+    <string name="all_apps_restored">Все приложения возвращены в меню</string>
+    <string name="no_hidden_apps">Нет скрытых приложений</string>
     <string name="loading_apps">Загрузка приложений…</string>
     <string name="refreshing">Обновление приложений…</string>
     <string name="empty_title">Приложения не найдены</string>
     <string name="empty_message">Установите приложение для Android TV, и оно появится здесь.</string>
     <string name="unable_to_open">Не удалось открыть «%1$s»</string>
-    <string name="app_info">О приложении</string>
 </resources>
