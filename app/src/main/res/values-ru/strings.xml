@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Приложения Couchy</string>
+    <string name="open_apps_activity_title">Открыть приложения Couchy</string>
     <string name="apps_title">Приложения</string>
     <string name="apps_count">%1$d приложений</string>
     <string name="get_more_apps">Ещё приложения</string>

@@ -42,9 +42,81 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Optional stable action for Button Mapper, Tasker, or ADB shortcuts. -->
+            <!-- Stable action for Button Mapper, Tasker, or ADB shortcuts. -->
             <intent-filter>
                 <action android:name="com.rubcut.couchyappsmenu.OPEN" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <!-- Standard Android ALL_APPS action for remote 9-dots button -->
+            <intent-filter>
+                <action android:name="android.intent.action.ALL_APPS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <!-- Stock TV Launcher ALL_APPS action -->
+            <intent-filter>
+                <action android:name="com.google.android.tvlauncher.action.ALL_APPS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.android.tv.action.ALL_APPS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.android.tv.action.OPEN_ALL_APPS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- Separate launcher activity for remote 9-dots button, Button Mapper & shortcuts -->
+        <activity
+            android:name=".OpenAppsActivity"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|density|uiMode"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:label="@string/open_apps_activity_title"
+            android:noHistory="true"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+
+            <!-- Stable intent filter for Button Mapper & shortcuts -->
+            <intent-filter>
+                <action android:name="com.rubcut.couchyappsmenu.OPEN" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <!-- Standard Android ALL_APPS action -->
+            <intent-filter>
+                <action android:name="android.intent.action.ALL_APPS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <!-- Additional Android TV actions -->
+            <intent-filter>
+                <action android:name="com.google.android.tvlauncher.action.ALL_APPS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.android.tv.action.ALL_APPS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.android.tv.action.OPEN_ALL_APPS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SHOW_APP_LIST" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.google.android.apps.tv.launcher.action.SHOW_ALL_APPS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <!-- Selectable directly in custom launchers / app shortcuts -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
