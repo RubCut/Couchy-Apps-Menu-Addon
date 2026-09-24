@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Couchy Apps</string>
+    <string name="apps_title">Apps</string>
+    <string name="apps_count">%1$d apps</string>
+    <string name="loading_apps">Loading your apps…</string>
+    <string name="empty_title">No apps found</string>
+    <string name="empty_message">Install an Android TV app and it will appear here.</string>
+    <string name="hint">Press and hold Select for app info  •  Menu to refresh</string>
+    <string name="app_info">App info</string>
+    <string name="unable_to_open">Can’t open %1$s</string>
+    <string name="refreshing">Refreshing apps…</string>
+    <string name="clock_content_description">Current time</string>
+</resources>

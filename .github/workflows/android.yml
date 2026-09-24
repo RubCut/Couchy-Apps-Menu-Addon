@@ -1,0 +1,27 @@
+name: Android build
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  debug-apk:
+    name: Debug APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+      # This workflow is a compile check only. Distribution is handled by the
+      # manual Signed APK workflow, which publishes a release asset instead of
+      # consuming the account-wide GitHub Actions artifact quota.
+      - name: Build debug APK
+        run: ./gradlew assembleDebug

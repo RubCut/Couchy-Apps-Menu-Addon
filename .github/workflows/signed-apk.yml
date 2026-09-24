@@ -1,0 +1,70 @@
+name: Signed APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: Human-readable version name shown in Android settings
+        required: true
+        default: 1.0.0
+
+permissions:
+  # Needed to create the GitHub Release that holds the finished APK.
+  contents: write
+
+jobs:
+  release-apk:
+    name: Build signed release APK
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      VERSION_CODE: ${{ github.run_number }}
+      VERSION_NAME: ${{ inputs.version_name }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+      - name: Validate signing configuration
+        shell: bash
+        run: |
+          missing=()
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              missing+=("$name")
+            fi
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "Missing required repository secrets: ${missing[*]}" >&2
+            echo "See README.md: Stable signed APKs." >&2
+            exit 1
+          fi
+      - name: Restore release keystore
+        shell: bash
+        run: |
+          KEYSTORE_PATH="$RUNNER_TEMP/couchy-apps-release.keystore"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          chmod 600 "$KEYSTORE_PATH"
+          echo "ANDROID_KEYSTORE_FILE=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+      - name: Build signed release APK
+        run: ./gradlew :app:assembleRelease
+      - name: Publish APK as a GitHub Release asset
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="build-${VERSION_NAME}-${GITHUB_RUN_NUMBER}"
+          apk_name="Couchy-Apps-${VERSION_NAME}-${GITHUB_RUN_NUMBER}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$apk_name"
+          gh release create "$tag" "$apk_name" \
+            --target "$GITHUB_SHA" \
+            --title "Couchy Apps ${VERSION_NAME} (build ${GITHUB_RUN_NUMBER})" \
+            --notes "Signed Android TV APK built from ${GITHUB_SHA}." \
+            --prerelease
