@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Приложения Couchy</string>
+    <string name="apps_title">Приложения</string>
+    <string name="apps_count">Приложений: %1$d</string>
+    <string name="loading_apps">Загрузка приложений…</string>
+    <string name="empty_title">Приложения не найдены</string>
+    <string name="empty_message">Установите приложение для Android TV — оно появится здесь.</string>
+    <string name="hint">Удерживайте OK: сведения о приложении  •  Menu: обновить</string>
+    <string name="app_info">Сведения о приложении</string>
+    <string name="unable_to_open">Не удалось открыть: %1$s</string>
+    <string name="refreshing">Обновление списка…</string>
+    <string name="clock_content_description">Текущее время</string>
+</resources>
