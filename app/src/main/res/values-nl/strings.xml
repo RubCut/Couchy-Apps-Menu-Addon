@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Couchy Apps</string>
+    <string name="apps_title">Apps</string>
+    <string name="search_hint">Zoek films, tv-programma\'s…</string>
+    <string name="get_more_apps">Meer apps downloaden</string>
+    <string name="get_more_games">Meer games downloaden</string>
+    <string name="netflix_channel">Door Netflix aanbevolen</string>
+    <string name="tips_channel">Zo kunt u…</string>
+    <string name="youtube_channel">Aanbevolen</string>
+    <string name="loading_apps">Apps laden…</string>
+    <string name="refreshing">Apps vernieuwen…</string>
+    <string name="empty_title">Geen apps gevonden</string>
+    <string name="empty_message">Installeer een Android TV-app en deze verschijnt hier.</string>
+    <string name="unable_to_open">Kan %1$s niet openen</string>
+    <string name="app_info">App-informatie</string>
+</resources>

@@ -2,26 +2,28 @@ package com.rubcut.couchyappsmenu.ui;
 
 import android.content.Context;
 import android.graphics.Color;
-import android.graphics.drawable.Drawable;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.rubcut.couchyappsmenu.data.AppEntry;
 
-/** One 16:9 Couchy-style application tile, entirely usable with a D-pad. */
-public final class AppTileView extends LinearLayout {
-    private static final int TEXT_NORMAL = Color.rgb(236, 241, 244);
-    private static final int TEXT_FOCUSED = Color.WHITE;
+/**
+ * 16:9 Android TV application tile.
+ * Displays Leanback banners directly, or an icon + label on a colored card
+ * when an application lacks a TV banner.
+ */
+public final class AppTileView extends FrameLayout {
     private final RoundedCardView card;
     private final ImageView banner;
+    private final LinearLayout fallbackLayout;
     private final ImageView icon;
     private final TextView label;
-    private final int labelTopMargin;
 
     public AppTileView(Context context) {
         this(context, null);
@@ -29,20 +31,18 @@ public final class AppTileView extends LinearLayout {
 
     public AppTileView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        setOrientation(VERTICAL);
         setFocusable(true);
         setFocusableInTouchMode(true);
         setClickable(true);
         setClipChildren(false);
         setClipToPadding(false);
 
-        int iconSize = dp(57);
-        labelTopMargin = dp(10);
+        int iconSize = dp(42);
 
         card = new RoundedCardView(context);
-        addView(card, new LinearLayout.LayoutParams(
+        addView(card, new FrameLayout.LayoutParams(
                 LayoutParams.MATCH_PARENT,
-                dp(108)
+                LayoutParams.MATCH_PARENT
         ));
 
         banner = new ImageView(context);
@@ -53,33 +53,40 @@ public final class AppTileView extends LinearLayout {
                 LayoutParams.MATCH_PARENT
         ));
 
+        fallbackLayout = new LinearLayout(context);
+        fallbackLayout.setOrientation(LinearLayout.VERTICAL);
+        fallbackLayout.setGravity(Gravity.CENTER);
+        fallbackLayout.setPadding(dp(8), dp(6), dp(8), dp(6));
+        card.addView(fallbackLayout, new RoundedCardView.LayoutParams(
+                LayoutParams.MATCH_PARENT,
+                LayoutParams.MATCH_PARENT
+        ));
+
         icon = new ImageView(context);
         icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
         icon.setContentDescription(null);
-        RoundedCardView.LayoutParams iconParams = new RoundedCardView.LayoutParams(iconSize, iconSize);
-        iconParams.gravity = Gravity.CENTER;
-        card.addView(icon, iconParams);
+        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(iconSize, iconSize);
+        fallbackLayout.addView(icon, iconParams);
 
         label = new TextView(context);
         label.setSingleLine(true);
         label.setEllipsize(TextUtils.TruncateAt.END);
-        label.setTextColor(TEXT_NORMAL);
-        label.setTextSize(14);
+        label.setTextColor(Color.WHITE);
+        label.setTextSize(12);
+        label.setGravity(Gravity.CENTER);
         label.setIncludeFontPadding(false);
         label.setMaxLines(1);
         LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(
                 LayoutParams.MATCH_PARENT,
                 LayoutParams.WRAP_CONTENT
         );
-        labelParams.topMargin = labelTopMargin;
-        addView(label, labelParams);
+        labelParams.topMargin = dp(6);
+        fallbackLayout.addView(label, labelParams);
 
         setOnFocusChangeListener(new OnFocusChangeListener() {
             @Override
             public void onFocusChange(View view, boolean hasFocus) {
                 card.setFocusedVisual(hasFocus);
-                label.setTextColor(hasFocus ? TEXT_FOCUSED : TEXT_NORMAL);
-                label.setSelected(hasFocus);
             }
         });
     }
@@ -87,18 +94,18 @@ public final class AppTileView extends LinearLayout {
     public void bind(AppEntry entry) {
         setContentDescription(entry.label);
         label.setText(entry.label);
-        card.setTileColor(tileColor(entry.packageName));
 
         if (entry.banner != null) {
             banner.setImageDrawable(entry.banner);
             banner.setVisibility(VISIBLE);
-            icon.setImageDrawable(null);
-            icon.setVisibility(GONE);
+            fallbackLayout.setVisibility(GONE);
+            card.setTileColor(Color.TRANSPARENT);
         } else {
             banner.setImageDrawable(null);
             banner.setVisibility(GONE);
+            card.setTileColor(tileColor(entry.packageName));
             icon.setImageDrawable(entry.icon);
-            icon.setVisibility(entry.icon == null ? GONE : VISIBLE);
+            fallbackLayout.setVisibility(VISIBLE);
         }
     }
 
@@ -107,11 +114,9 @@ public final class AppTileView extends LinearLayout {
         int width = MeasureSpec.getSize(widthMeasureSpec);
         if (width > 0) {
             int artworkHeight = Math.round(width * 9f / 16f);
-            LayoutParams cardParams = (LayoutParams) card.getLayoutParams();
-            if (cardParams.height != artworkHeight) {
-                cardParams.height = artworkHeight;
-                card.setLayoutParams(cardParams);
-            }
+            int exactHeightSpec = MeasureSpec.makeMeasureSpec(artworkHeight, MeasureSpec.EXACTLY);
+            super.onMeasure(widthMeasureSpec, exactHeightSpec);
+            return;
         }
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
@@ -126,12 +131,12 @@ public final class AppTileView extends LinearLayout {
         return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
-    /** Stable muted colors for banner-less apps, like Couchy's own fallback cards. */
+    /** Muted TV tile colors for bannerless apps */
     private static int tileColor(String packageName) {
         final int[] palette = {
-                0xFF37474F, 0xFF4E342E, 0xFF1B5E20,
-                0xFF0D47A1, 0xFF4A148C, 0xFF880E4F,
-                0xFF3E2723, 0xFF263238, 0xFF33691E
+                0xFF2A3D4C, 0xFF1E824C, 0xFF2A5C8A,
+                0xFF5D3868, 0xFF8A3B2C, 0xFF1F6B61,
+                0xFF3B4856, 0xFF4A5568, 0xFF23445A
         };
         return palette[(packageName.hashCode() & 0x7fffffff) % palette.length];
     }

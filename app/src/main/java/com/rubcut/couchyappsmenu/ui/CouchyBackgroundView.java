@@ -5,16 +5,20 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
-import android.graphics.RadialGradient;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.util.AttributeSet;
 import android.view.View;
 
-/** A lightweight, asset-free version of Couchy's calm midnight wallpaper. */
+/**
+ * Android TV style semi-transparent black background.
+ * Splits the screen between the dimmed home scrim on the left (~33%)
+ * and the overlay apps panel on the right (~67%).
+ */
 public final class CouchyBackgroundView extends View {
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
     private final RectF bounds = new RectF();
+    private final RectF rightBounds = new RectF();
 
     public CouchyBackgroundView(Context context) {
         super(context);
@@ -33,27 +37,44 @@ public final class CouchyBackgroundView extends View {
             return;
         }
 
-        bounds.set(0, 0, width, height);
-        paint.setShader(new LinearGradient(
-                0, 0, width, height,
-                new int[]{Color.rgb(15, 32, 39), Color.rgb(29, 61, 72), Color.rgb(44, 83, 100)},
-                new float[]{0f, .55f, 1f},
-                Shader.TileMode.CLAMP
-        ));
+        float splitX = width * 0.33f;
+
+        // 1. Semi-transparent black scrim for the left area
+        bounds.set(0, 0, splitX, height);
+        paint.setShader(null);
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(Color.argb(204, 6, 9, 13)); // ~80% black scrim
         canvas.drawRect(bounds, paint);
 
-        // A very soft cool glow gives the otherwise flat gradient depth without video/GPU cost.
-        paint.setShader(new RadialGradient(
-                width * .78f, height * .08f, Math.max(width, height) * .66f,
-                new int[]{0x453A91A4, 0x003A91A4},
+        // 2. Right panel: semi-transparent black surface with subtle dark depth
+        rightBounds.set(splitX, 0, width, height);
+        paint.setShader(new LinearGradient(
+                splitX, 0, width, height,
+                new int[]{
+                        Color.argb(230, 11, 15, 21),
+                        Color.argb(240, 7, 10, 15)
+                },
                 new float[]{0f, 1f},
                 Shader.TileMode.CLAMP
         ));
-        canvas.drawRect(bounds, paint);
+        canvas.drawRect(rightBounds, paint);
 
-        // Couchy keeps its wallpaper deliberately dim so artwork remains legible from a sofa.
+        // 3. Subtle vertical divider line at splitX
         paint.setShader(null);
-        paint.setColor(0x47000000);
-        canvas.drawRect(bounds, paint);
+        paint.setColor(Color.argb(32, 255, 255, 255));
+        paint.setStrokeWidth(Math.max(1f, getResources().getDisplayMetrics().density * 0.75f));
+        canvas.drawLine(splitX, 0, splitX, height, paint);
+
+        // 4. Soft shadow cast from the split to the right panel
+        paint.setShader(new LinearGradient(
+                splitX, 0, splitX + (getResources().getDisplayMetrics().density * 18f), 0,
+                new int[]{
+                        Color.argb(60, 0, 0, 0),
+                        Color.argb(0, 0, 0, 0)
+                },
+                new float[]{0f, 1f},
+                Shader.TileMode.CLAMP
+        ));
+        canvas.drawRect(splitX, 0, splitX + (getResources().getDisplayMetrics().density * 18f), height, paint);
     }
 }

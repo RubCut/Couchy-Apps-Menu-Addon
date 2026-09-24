@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -12,7 +13,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.provider.Settings;
-import android.text.format.DateFormat;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
@@ -26,46 +26,40 @@ import com.rubcut.couchyappsmenu.data.AppCatalog;
 import com.rubcut.couchyappsmenu.data.AppEntry;
 import com.rubcut.couchyappsmenu.ui.AppGridAdapter;
 
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * A small full-screen all-apps view designed to feel at home beside Couchy.
- * It deliberately has no network, account, or accessibility-service dependency.
+ * Android TV apps drawer matching the classic ATV 4-column Leanback overlay
+ * with semi-transparent black background and remote-first D-pad navigation.
  */
 public final class MainActivity extends Activity implements AppGridAdapter.Listener {
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final ExecutorService catalogExecutor = Executors.newSingleThreadExecutor();
-    private final Date clockDate = new Date();
 
     private GridView appGrid;
     private AppGridAdapter adapter;
     private View loadingState;
     private View emptyState;
-    private TextView subtitle;
     private TextView loadingText;
-    private TextView clock;
+
+    private View searchBar;
+    private View rowApps;
+    private View rowNetflix;
+    private View rowTips;
+    private View rowYouTube;
+    private View btnGetApps;
+    private View btnGetGames;
+
     private int scanGeneration;
     private long lastScanRequestAt;
     private String focusedComponent;
     private boolean receiverRegistered;
 
-    private final Runnable clockUpdater = new Runnable() {
-        @Override
-        public void run() {
-            updateClock();
-            long now = System.currentTimeMillis();
-            long untilNextMinute = 60_000L - (now % 60_000L) + 80L;
-            mainHandler.postDelayed(this, untilNextMinute);
-        }
-    };
-
     private final BroadcastReceiver packageReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            // Package broadcasts may arrive in a small burst; one serial scan is enough.
             reloadApps(false);
         }
     };
@@ -79,9 +73,15 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
         appGrid = findViewById(R.id.app_grid);
         loadingState = findViewById(R.id.loading_state);
         emptyState = findViewById(R.id.empty_state);
-        subtitle = findViewById(R.id.subtitle);
         loadingText = findViewById(R.id.loading_text);
-        clock = findViewById(R.id.clock);
+
+        searchBar = findViewById(R.id.search_bar);
+        rowApps = findViewById(R.id.row_apps);
+        rowNetflix = findViewById(R.id.row_netflix);
+        rowTips = findViewById(R.id.row_tips);
+        rowYouTube = findViewById(R.id.row_youtube);
+        btnGetApps = findViewById(R.id.btn_get_apps);
+        btnGetGames = findViewById(R.id.btn_get_games);
 
         adapter = new AppGridAdapter(this, this);
         appGrid.setAdapter(adapter);
@@ -95,14 +95,260 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
-                // Keep the last component: it makes a refresh feel stable.
             }
         });
+
+        setupActions();
+        setupFocusAnimations();
+        setupNavigation();
 
         if (savedInstanceState != null) {
             focusedComponent = savedInstanceState.getString("focused_component");
         }
         reloadApps(true);
+    }
+
+    private void setupActions() {
+        searchBar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                launchVoiceSearch();
+            }
+        });
+
+        rowApps.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                appGrid.requestFocus();
+            }
+        });
+
+        rowNetflix.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                launchPackageOrStore("com.netflix.ninja", "Netflix", "com.netflix.mediaclient");
+            }
+        });
+
+        rowTips.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    startActivity(new Intent(Settings.ACTION_SETTINGS));
+                } catch (RuntimeException ignored) {
+                }
+            }
+        });
+
+        rowYouTube.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                launchPackageOrStore("com.google.android.youtube.tv", "YouTube", "com.google.android.youtube");
+            }
+        });
+
+        btnGetApps.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openPlayStore();
+            }
+        });
+
+        btnGetGames.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openPlayGames();
+            }
+        });
+    }
+
+    private void setupFocusAnimations() {
+        setupViewFocusAnim(searchBar, 1.03f, dp(4));
+        setupViewFocusAnim(rowApps, 1.04f, dp(4));
+        setupViewFocusAnim(rowNetflix, 1.04f, dp(4));
+        setupViewFocusAnim(rowTips, 1.04f, dp(4));
+        setupViewFocusAnim(rowYouTube, 1.04f, dp(4));
+        setupViewFocusAnim(btnGetApps, 1.05f, dp(6));
+        setupViewFocusAnim(btnGetGames, 1.05f, dp(6));
+    }
+
+    private void setupViewFocusAnim(final View view, final float scale, final float elevation) {
+        view.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                v.animate()
+                        .scaleX(hasFocus ? scale : 1f)
+                        .scaleY(hasFocus ? scale : 1f)
+                        .translationZ(hasFocus ? elevation : 0f)
+                        .setDuration(hasFocus ? 120 : 90)
+                        .start();
+            }
+        });
+    }
+
+    private void setupNavigation() {
+        appGrid.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                if (event.getAction() != KeyEvent.ACTION_DOWN) {
+                    return false;
+                }
+                int pos = appGrid.getSelectedItemPosition();
+                if (keyCode == KeyEvent.KEYCODE_DPAD_UP && pos >= 0 && pos < 4) {
+                    if (pos <= 1) {
+                        btnGetApps.requestFocus();
+                    } else {
+                        btnGetGames.requestFocus();
+                    }
+                    return true;
+                } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && (pos % 4 == 0)) {
+                    rowApps.requestFocus();
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        btnGetApps.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                if (event.getAction() != KeyEvent.ACTION_DOWN) {
+                    return false;
+                }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    appGrid.requestFocus();
+                    return true;
+                } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                    searchBar.requestFocus();
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        btnGetGames.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                if (event.getAction() != KeyEvent.ACTION_DOWN) {
+                    return false;
+                }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    appGrid.requestFocus();
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        searchBar.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                if (event.getAction() != KeyEvent.ACTION_DOWN) {
+                    return false;
+                }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    rowApps.requestFocus();
+                    return true;
+                } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                    btnGetApps.requestFocus();
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        View.OnKeyListener sidebarKeyListener = new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                if (event.getAction() != KeyEvent.ACTION_DOWN) {
+                    return false;
+                }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                    appGrid.requestFocus();
+                    return true;
+                }
+                return false;
+            }
+        };
+
+        rowApps.setOnKeyListener(sidebarKeyListener);
+        rowNetflix.setOnKeyListener(sidebarKeyListener);
+        rowTips.setOnKeyListener(sidebarKeyListener);
+        rowYouTube.setOnKeyListener(sidebarKeyListener);
+    }
+
+    private void launchVoiceSearch() {
+        try {
+            startActivity(new Intent(Intent.ACTION_ASSIST));
+        } catch (Exception e1) {
+            try {
+                startActivity(new Intent("android.speech.action.WEB_SEARCH"));
+            } catch (Exception e2) {
+                try {
+                    startActivity(new Intent(Intent.ACTION_VOICE_COMMAND));
+                } catch (Exception e3) {
+                    Toast.makeText(this, R.string.search_hint, Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+    }
+
+    private void openPlayStore() {
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("market://search?c=apps"));
+            intent.setPackage("com.android.vending");
+            startActivity(intent);
+        } catch (Exception e1) {
+            try {
+                Intent launch = getPackageManager().getLaunchIntentForPackage("com.android.vending");
+                if (launch != null) {
+                    startActivity(launch);
+                } else {
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps")));
+                }
+            } catch (Exception e2) {
+                Toast.makeText(this, R.string.get_more_apps, Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void openPlayGames() {
+        try {
+            Intent launch = getPackageManager().getLaunchIntentForPackage("com.google.android.play.games");
+            if (launch != null) {
+                startActivity(launch);
+                return;
+            }
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("market://search?c=apps&q=games"));
+            intent.setPackage("com.android.vending");
+            startActivity(intent);
+        } catch (Exception e1) {
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/category/GAME")));
+            } catch (Exception e2) {
+                Toast.makeText(this, R.string.get_more_games, Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void launchPackageOrStore(String primaryPackage, String label, String fallbackPackage) {
+        PackageManager pm = getPackageManager();
+        Intent intent = pm.getLaunchIntentForPackage(primaryPackage);
+        if (intent == null && fallbackPackage != null) {
+            intent = pm.getLaunchIntentForPackage(fallbackPackage);
+        }
+        if (intent != null) {
+            try {
+                startActivity(intent);
+                return;
+            } catch (RuntimeException ignored) {
+            }
+        }
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + primaryPackage)));
+        } catch (RuntimeException e) {
+            Toast.makeText(this, label, Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
@@ -114,11 +360,6 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
     @Override
     protected void onResume() {
         super.onResume();
-        updateClock();
-        mainHandler.removeCallbacks(clockUpdater);
-        mainHandler.post(clockUpdater);
-
-        // Returning from an installer/settings page is a common way the app list changes.
         if (SystemClock.elapsedRealtime() - lastScanRequestAt > 1_500L) {
             reloadApps(false);
         }
@@ -126,7 +367,6 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
 
     @Override
     protected void onStop() {
-        mainHandler.removeCallbacks(clockUpdater);
         unregisterPackageReceiver();
         super.onStop();
     }
@@ -199,8 +439,6 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
             loadingText.setText(R.string.loading_apps);
             loadingState.setVisibility(View.VISIBLE);
             emptyState.setVisibility(View.GONE);
-        } else {
-            subtitle.setText(R.string.refreshing);
         }
 
         catalogExecutor.execute(new Runnable() {
@@ -230,7 +468,6 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
         adapter.submit(apps);
         loadingState.setVisibility(View.GONE);
         emptyState.setVisibility(apps.isEmpty() ? View.VISIBLE : View.GONE);
-        subtitle.setText(getString(R.string.apps_count, apps.size()));
 
         if (apps.isEmpty()) {
             return;
@@ -245,6 +482,8 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
                 View focusedChild = appGrid.getChildAt(selection - appGrid.getFirstVisiblePosition());
                 if (focusedChild != null) {
                     focusedChild.requestFocus();
+                } else {
+                    appGrid.requestFocus();
                 }
             }
         });
@@ -259,11 +498,6 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
             }
         }
         return 0;
-    }
-
-    private void updateClock() {
-        clockDate.setTime(System.currentTimeMillis());
-        clock.setText(DateFormat.getTimeFormat(this).format(clockDate));
     }
 
     private void makeFullscreen() {
@@ -305,5 +539,9 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
         }
         unregisterReceiver(packageReceiver);
         receiverRegistered = false;
+    }
+
+    private float dp(float value) {
+        return value * getResources().getDisplayMetrics().density;
     }
 }

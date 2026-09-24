@@ -7,21 +7,19 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.util.AttributeSet;
-import android.view.View;
 import android.widget.FrameLayout;
 
 /**
- * A clipping card with Couchy-like focus behavior.  It intentionally uses only
- * Canvas/View APIs so it remains smooth on old Android TV hardware.
+ * A rounded card with Android TV focus scaling and white focus border.
+ * Uses lightweight View/Canvas APIs with zero external dependencies.
  */
 public final class RoundedCardView extends FrameLayout {
-    private static final int ACCENT = Color.rgb(138, 180, 248);
     private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
     private final Paint borderPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
     private final Path roundedPath = new Path();
     private final RectF cardBounds = new RectF();
     private final float radius;
-    private int tileColor = Color.rgb(43, 66, 76);
+    private int tileColor = Color.rgb(36, 48, 60);
     private boolean focusedVisual;
 
     public RoundedCardView(Context context) {
@@ -30,10 +28,10 @@ public final class RoundedCardView extends FrameLayout {
 
     public RoundedCardView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        radius = density(context) * 14f;
+        radius = density(context) * 8f;
         borderPaint.setStyle(Paint.Style.STROKE);
-        borderPaint.setStrokeWidth(density(context) * 2f);
-        borderPaint.setColor(ACCENT);
+        borderPaint.setStrokeWidth(density(context) * 2.5f);
+        borderPaint.setColor(Color.WHITE);
         setWillNotDraw(false);
         setClipToPadding(false);
         setClipChildren(false);
@@ -51,10 +49,10 @@ public final class RoundedCardView extends FrameLayout {
         }
         focusedVisual = focused;
         animate()
-                .scaleX(focused ? 1.065f : 1f)
-                .scaleY(focused ? 1.065f : 1f)
-                .translationZ(focused ? density(getContext()) * 12f : 0f)
-                .setDuration(focused ? 130 : 100)
+                .scaleX(focused ? 1.08f : 1f)
+                .scaleY(focused ? 1.08f : 1f)
+                .translationZ(focused ? density(getContext()) * 10f : 0f)
+                .setDuration(focused ? 120 : 90)
                 .start();
         invalidate();
     }
@@ -76,7 +74,6 @@ public final class RoundedCardView extends FrameLayout {
         canvas.restoreToCount(checkpoint);
 
         if (focusedVisual) {
-            // Draw inset so focus remains visible even when a banner fills the whole card.
             float inset = borderPaint.getStrokeWidth() / 2f;
             canvas.drawRoundRect(
                     inset,
