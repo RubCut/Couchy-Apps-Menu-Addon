@@ -30,6 +30,11 @@ public final class DrawerPanelView extends LinearLayout {
         init();
     }
 
+    public DrawerPanelView(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        init();
+    }
+
     private void init() {
         setWillNotDraw(false);
         setClipChildren(false);

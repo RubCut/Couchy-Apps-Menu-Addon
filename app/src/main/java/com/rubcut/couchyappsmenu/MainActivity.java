@@ -98,7 +98,6 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
 
         adapter = new AppGridAdapter(this, this);
         appGrid.setAdapter(adapter);
-        appGrid.setItemsCanFocus(true);
 
         appGrid.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
