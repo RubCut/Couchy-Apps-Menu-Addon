@@ -20,7 +20,7 @@
         android:clipToPadding="false"
         android:orientation="horizontal">
 
-        <!-- LEFT AREA (~33%): Empty space, shows background, clicking dismisses -->
+        <!-- LEFT AREA (~33%): Completely transparent space, clicking/tapping closes menu -->
         <View
             android:id="@+id/dismiss_area"
             android:layout_width="0dp"
@@ -30,8 +30,8 @@
             android:contentDescription="@null"
             android:focusable="false" />
 
-        <!-- RIGHT SIDE PANEL (~67%): Classic Side Drawer with semi-transparent black background -->
-        <LinearLayout
+        <!-- RIGHT SIDE PANEL (~67%): Strongly darkened sliding drawer -->
+        <com.rubcut.couchyappsmenu.ui.DrawerPanelView
             android:id="@+id/right_panel"
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -73,6 +73,7 @@
                     android:clickable="true"
                     android:focusable="true"
                     android:nextFocusDown="@+id/app_grid"
+                    android:nextFocusLeft="@+id/btn_hidden_apps"
                     android:nextFocusRight="@+id/btn_get_apps">
 
                     <ImageView
@@ -127,6 +128,7 @@
                     android:gravity="center_vertical"
                     android:nextFocusDown="@+id/app_grid"
                     android:nextFocusLeft="@+id/btn_get_apps"
+                    android:nextFocusRight="@+id/btn_get_games"
                     android:orientation="horizontal"
                     android:paddingStart="14dp"
                     android:paddingEnd="18dp">
@@ -163,6 +165,8 @@
                     android:layout_height="match_parent"
                     android:clipChildren="false"
                     android:clipToPadding="false"
+                    android:descendantFocusability="afterDescendants"
+                    android:focusable="true"
                     android:horizontalSpacing="12dp"
                     android:listSelector="@android:color/transparent"
                     android:numColumns="4"
@@ -228,6 +232,6 @@
                         android:textSize="13sp" />
                 </LinearLayout>
             </FrameLayout>
-        </LinearLayout>
+        </com.rubcut.couchyappsmenu.ui.DrawerPanelView>
     </LinearLayout>
 </FrameLayout>

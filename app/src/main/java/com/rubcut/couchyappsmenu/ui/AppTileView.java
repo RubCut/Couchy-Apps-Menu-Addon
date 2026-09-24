@@ -2,10 +2,10 @@ package com.rubcut.couchyappsmenu.ui;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.Rect;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.Gravity;
-import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -14,9 +14,8 @@ import android.widget.TextView;
 import com.rubcut.couchyappsmenu.data.AppEntry;
 
 /**
- * 16:9 Android TV application tile.
- * Displays Leanback banners directly, or an icon + label on a colored card
- * when an application lacks a TV banner.
+ * 16:9 Android TV application tile with pronounced 20dp corner radius
+ * and robust focus synchronization.
  */
 public final class AppTileView extends FrameLayout {
     private final RoundedCardView card;
@@ -32,7 +31,7 @@ public final class AppTileView extends FrameLayout {
     public AppTileView(Context context, AttributeSet attrs) {
         super(context, attrs);
         setFocusable(true);
-        setFocusableInTouchMode(true);
+        setFocusableInTouchMode(false);
         setClickable(true);
         setClipChildren(false);
         setClipToPadding(false);
@@ -82,13 +81,6 @@ public final class AppTileView extends FrameLayout {
         );
         labelParams.topMargin = dp(6);
         fallbackLayout.addView(label, labelParams);
-
-        setOnFocusChangeListener(new OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View view, boolean hasFocus) {
-                card.setFocusedVisual(hasFocus);
-            }
-        });
     }
 
     public void bind(AppEntry entry) {
@@ -107,6 +99,28 @@ public final class AppTileView extends FrameLayout {
             icon.setImageDrawable(entry.icon);
             fallbackLayout.setVisibility(VISIBLE);
         }
+        updateVisualState();
+    }
+
+    @Override
+    public void setSelected(boolean selected) {
+        super.setSelected(selected);
+        updateVisualState();
+    }
+
+    @Override
+    protected void onFocusChanged(boolean gainFocus, int direction, Rect previouslyFocusedRect) {
+        super.onFocusChanged(gainFocus, direction, previouslyFocusedRect);
+        updateVisualState();
+    }
+
+    public void setCardFocused(boolean focused) {
+        card.setFocusedVisual(focused);
+    }
+
+    private void updateVisualState() {
+        boolean active = isFocused() || isSelected();
+        card.setFocusedVisual(active);
     }
 
     @Override
@@ -131,7 +145,6 @@ public final class AppTileView extends FrameLayout {
         return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
-    /** Muted TV tile colors for bannerless apps */
     private static int tileColor(String packageName) {
         final int[] palette = {
                 0xFF2A3D4C, 0xFF1E824C, 0xFF2A5C8A,

@@ -17,8 +17,11 @@ import android.os.SystemClock;
 import android.provider.Settings;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.TextView;
@@ -38,21 +41,22 @@ import java.util.concurrent.Executors;
 
 /**
  * Android TV Side Apps Drawer.
- * Appears as a sleek semi-transparent right-side panel (~67% width)
- * with the left area empty and dismissed on click/Left key.
- * Cards have modern 20dp corner rounding, and apps can be hidden and restored.
+ * Slides in from the right edge with strongly darkened semi-transparent black surface.
+ * The left space is completely transparent and dismisses the drawer on click.
+ * Features 20dp rounded 16:9 cards, robust focus navigation, and app hiding.
  */
 public final class MainActivity extends Activity implements AppGridAdapter.Listener {
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final ExecutorService catalogExecutor = Executors.newSingleThreadExecutor();
 
+    private View rightPanel;
+    private View dismissArea;
     private GridView appGrid;
     private AppGridAdapter adapter;
     private View loadingState;
     private View emptyState;
     private TextView loadingText;
 
-    private View dismissArea;
     private View btnHiddenApps;
     private View btnGetApps;
     private View btnGetGames;
@@ -65,6 +69,7 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
     private long lastScanRequestAt;
     private String focusedComponent;
     private boolean receiverRegistered;
+    private boolean isClosing;
 
     private final BroadcastReceiver packageReceiver = new BroadcastReceiver() {
         @Override
@@ -76,26 +81,34 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        overridePendingTransition(0, 0);
         makeFullscreen();
         setContentView(R.layout.activity_main);
 
+        rightPanel = findViewById(R.id.right_panel);
+        dismissArea = findViewById(R.id.dismiss_area);
         appGrid = findViewById(R.id.app_grid);
         loadingState = findViewById(R.id.loading_state);
         emptyState = findViewById(R.id.empty_state);
         loadingText = findViewById(R.id.loading_text);
 
-        dismissArea = findViewById(R.id.dismiss_area);
         btnHiddenApps = findViewById(R.id.btn_hidden_apps);
         btnGetApps = findViewById(R.id.btn_get_apps);
         btnGetGames = findViewById(R.id.btn_get_games);
 
         adapter = new AppGridAdapter(this, this);
         appGrid.setAdapter(adapter);
+        appGrid.setItemsCanFocus(true);
+
         appGrid.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 if (position >= 0 && position < adapter.getCount()) {
                     focusedComponent = adapter.getItem(position).component.flattenToString();
+                    if (view != null) {
+                        view.setSelected(true);
+                        view.requestFocus();
+                    }
                 }
             }
 
@@ -107,6 +120,7 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
         setupActions();
         setupFocusAnimations();
         setupNavigation();
+        animateOpen();
 
         if (savedInstanceState != null) {
             focusedComponent = savedInstanceState.getString("focused_component");
@@ -114,11 +128,59 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
         reloadApps(true);
     }
 
+    private void animateOpen() {
+        rightPanel.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+            @Override
+            public boolean onPreDraw() {
+                rightPanel.getViewTreeObserver().removeOnPreDrawListener(this);
+                int width = rightPanel.getWidth();
+                if (width <= 0) {
+                    width = Math.round(getResources().getDisplayMetrics().widthPixels * 0.67f);
+                }
+                rightPanel.setTranslationX(width);
+                rightPanel.animate()
+                        .translationX(0f)
+                        .setDuration(280)
+                        .setInterpolator(new DecelerateInterpolator(1.8f))
+                        .start();
+                return true;
+            }
+        });
+    }
+
+    private void animateClose() {
+        if (isClosing) {
+            return;
+        }
+        isClosing = true;
+        int width = rightPanel.getWidth();
+        if (width <= 0) {
+            width = Math.round(getResources().getDisplayMetrics().widthPixels * 0.67f);
+        }
+        rightPanel.animate()
+                .translationX(width)
+                .setDuration(220)
+                .setInterpolator(new AccelerateInterpolator(1.8f))
+                .withEndAction(new Runnable() {
+                    @Override
+                    public void run() {
+                        MainActivity.super.finish();
+                        overridePendingTransition(0, 0);
+                    }
+                })
+                .start();
+    }
+
+    @Override
+    public void onBackPressed() {
+        animateClose();
+    }
+
     private void setupActions() {
         dismissArea.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                finish();
+                animateClose();
             }
         });
 
@@ -145,7 +207,7 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
     }
 
     private void setupFocusAnimations() {
-        setupPillFocusAnim(btnHiddenApps, 1.08f);
+        setupPillFocusAnim(btnHiddenApps, 1.1f);
         setupPillFocusAnim(btnGetApps, 1.05f);
         setupPillFocusAnim(btnGetGames, 1.05f);
     }
@@ -165,6 +227,7 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
     }
 
     private void setupNavigation() {
+        // App grid navigation
         appGrid.setOnKeyListener(new View.OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
@@ -172,6 +235,8 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
                     return false;
                 }
                 int pos = appGrid.getSelectedItemPosition();
+
+                // Move up from row 0 to top buttons
                 if (keyCode == KeyEvent.KEYCODE_DPAD_UP && pos >= 0 && pos < 4) {
                     if (pos == 0) {
                         btnHiddenApps.requestFocus();
@@ -181,15 +246,18 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
                         btnGetGames.requestFocus();
                     }
                     return true;
-                } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && (pos % 4 == 0)) {
-                    // Moving left from the first column closes the side drawer
-                    finish();
+                }
+
+                // Prevent cursor from escaping/disappearing when pressing left at column 0
+                if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && (pos % 4 == 0)) {
                     return true;
                 }
+
                 return false;
             }
         });
 
+        // Top button: Hidden Apps
         btnHiddenApps.setOnKeyListener(new View.OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
@@ -197,19 +265,19 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
                     return false;
                 }
                 if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                    appGrid.requestFocus();
+                    focusGridFromTop(0);
                     return true;
                 } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
                     btnGetApps.requestFocus();
                     return true;
                 } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
-                    finish();
-                    return true;
+                    return true; // Keep focus on the button
                 }
                 return false;
             }
         });
 
+        // Top button: Get Apps
         btnGetApps.setOnKeyListener(new View.OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
@@ -217,7 +285,7 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
                     return false;
                 }
                 if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                    appGrid.requestFocus();
+                    focusGridFromTop(1);
                     return true;
                 } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
                     btnHiddenApps.requestFocus();
@@ -230,6 +298,7 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
             }
         });
 
+        // Top button: Get Games
         btnGetGames.setOnKeyListener(new View.OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
@@ -237,13 +306,35 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
                     return false;
                 }
                 if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                    appGrid.requestFocus();
+                    focusGridFromTop(3);
                     return true;
                 } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
                     btnGetApps.requestFocus();
                     return true;
+                } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                    return true; // Keep focus on the button
                 }
                 return false;
+            }
+        });
+    }
+
+    private void focusGridFromTop(final int col) {
+        if (adapter.getCount() == 0) {
+            return;
+        }
+        final int targetPos = Math.min(col, adapter.getCount() - 1);
+        appGrid.requestFocus();
+        appGrid.setSelection(targetPos);
+        appGrid.post(new Runnable() {
+            @Override
+            public void run() {
+                int first = appGrid.getFirstVisiblePosition();
+                View child = appGrid.getChildAt(targetPos - first);
+                if (child != null) {
+                    child.requestFocus();
+                    child.setSelected(true);
+                }
             }
         });
     }
@@ -329,9 +420,9 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        // Toggle on 9-dots button (KEYCODE_ALL_APPS) or handle menu keys
+        // Toggle on 9-dots button (KEYCODE_ALL_APPS)
         if (keyCode == KeyEvent.KEYCODE_ALL_APPS && event.getRepeatCount() == 0) {
-            finish();
+            animateClose();
             return true;
         }
 
@@ -557,6 +648,7 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
                 View focusedChild = appGrid.getChildAt(selection - appGrid.getFirstVisiblePosition());
                 if (focusedChild != null) {
                     focusedChild.requestFocus();
+                    focusedChild.setSelected(true);
                 } else {
                     appGrid.requestFocus();
                 }
