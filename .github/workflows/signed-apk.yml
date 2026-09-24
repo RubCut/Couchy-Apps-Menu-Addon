@@ -9,7 +9,8 @@ on:
         default: 1.0.0
 
 permissions:
-  contents: read
+  # Needed to create the GitHub Release that holds the finished APK.
+  contents: write
 
 jobs:
   release-apk:
@@ -54,10 +55,16 @@ jobs:
           echo "ANDROID_KEYSTORE_FILE=$KEYSTORE_PATH" >> "$GITHUB_ENV"
       - name: Build signed release APK
         run: ./gradlew :app:assembleRelease
-      - name: Publish APK artifact
-        uses: actions/upload-artifact@v5
-        with:
-          name: couchy-apps-${{ inputs.version_name }}-${{ github.run_number }}
-          path: app/build/outputs/apk/release/app-release.apk
-          if-no-files-found: error
-          retention-days: 90
+      - name: Publish APK as a GitHub Release asset
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="build-${VERSION_NAME}-${GITHUB_RUN_NUMBER}"
+          apk_name="Couchy-Apps-${VERSION_NAME}-${GITHUB_RUN_NUMBER}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$apk_name"
+          gh release create "$tag" "$apk_name" \
+            --target "$GITHUB_SHA" \
+            --title "Couchy Apps ${VERSION_NAME} (build ${GITHUB_RUN_NUMBER})" \
+            --notes "Signed Android TV APK built from ${GITHUB_SHA}." \
+            --prerelease

@@ -55,7 +55,7 @@ adb shell am start -n com.rubcut.couchyappsmenu/.MainActivity
 
 ## Стабильно подписанный APK в GitHub Actions
 
-В репозитории есть ручной workflow **Signed APK**. Он создаёт `app-release.apk`, подписывает его одним и тем же release-ключом и прикладывает файл к запуску как artifact на 90 дней. Запуск: **Actions → Signed APK → Run workflow**.
+В репозитории есть ручной workflow **Signed APK**. Он создаёт `app-release.apk`, подписывает его одним и тем же release-ключом и публикует файл в отдельном GitHub prerelease. Это не использует ограниченную квоту GitHub Actions Artifacts. Запуск: **Actions → Signed APK → Run workflow**; после завершения APK находится во вкладке **Releases**.
 
 Приватный ключ в репозиторий не добавляется. Один раз создайте и сохраните keystore в надёжном месте, затем добавьте в **Settings → Secrets and variables → Actions** следующие repository secrets:
 
