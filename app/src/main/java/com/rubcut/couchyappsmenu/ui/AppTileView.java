@@ -2,10 +2,10 @@ package com.rubcut.couchyappsmenu.ui;
 
 import android.content.Context;
 import android.graphics.Color;
-import android.graphics.Rect;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.Gravity;
+import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -14,8 +14,8 @@ import android.widget.TextView;
 import com.rubcut.couchyappsmenu.data.AppEntry;
 
 /**
- * 16:9 Android TV application tile with pronounced 20dp corner radius
- * and robust focus synchronization.
+ * 16:9 Android TV application tile matching Couchy Launcher's visual style.
+ * 20dp corner radius, banner crop, and Couchy accent focus ring.
  */
 public final class AppTileView extends FrameLayout {
     private final RoundedCardView card;
@@ -81,6 +81,15 @@ public final class AppTileView extends FrameLayout {
         );
         labelParams.topMargin = dp(6);
         fallbackLayout.addView(label, labelParams);
+
+        // ONLY real View focus drives visual focus.
+        // This ensures the focus ring follows D-pad focus and NEVER duplicates.
+        setOnFocusChangeListener(new OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                card.setFocusedVisual(hasFocus);
+            }
+        });
     }
 
     public void bind(AppEntry entry) {
@@ -99,28 +108,7 @@ public final class AppTileView extends FrameLayout {
             icon.setImageDrawable(entry.icon);
             fallbackLayout.setVisibility(VISIBLE);
         }
-        updateVisualState();
-    }
-
-    @Override
-    public void setSelected(boolean selected) {
-        super.setSelected(selected);
-        updateVisualState();
-    }
-
-    @Override
-    protected void onFocusChanged(boolean gainFocus, int direction, Rect previouslyFocusedRect) {
-        super.onFocusChanged(gainFocus, direction, previouslyFocusedRect);
-        updateVisualState();
-    }
-
-    public void setCardFocused(boolean focused) {
-        card.setFocusedVisual(focused);
-    }
-
-    private void updateVisualState() {
-        boolean active = isFocused() || isSelected();
-        card.setFocusedVisual(active);
+        card.setFocusedVisual(hasFocus());
     }
 
     @Override
@@ -145,11 +133,16 @@ public final class AppTileView extends FrameLayout {
         return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
+    /** Couchy calm muted palette for bannerless apps */
     private static int tileColor(String packageName) {
         final int[] palette = {
-                0xFF2A3D4C, 0xFF1E824C, 0xFF2A5C8A,
-                0xFF5D3868, 0xFF8A3B2C, 0xFF1F6B61,
-                0xFF3B4856, 0xFF4A5568, 0xFF23445A
+                0xFF1E2A38, // Slate midnight
+                0xFF163042, // Navy
+                0xFF14383E, // Deep teal
+                0xFF2A2234, // Plum
+                0xFF28241C, // Bronze
+                0xFF1C2832, // Dark steel
+                0xFF1F3546  // Deep blue
         };
         return palette[(packageName.hashCode() & 0x7fffffff) % palette.length];
     }

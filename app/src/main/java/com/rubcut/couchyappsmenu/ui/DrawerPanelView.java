@@ -11,7 +11,8 @@ import android.util.AttributeSet;
 import android.widget.LinearLayout;
 
 /**
- * Slide-in right side drawer panel with strongly darkened semi-transparent black surface,
+ * Slide-in right side drawer panel styled in Couchy Launcher's signature midnight palette.
+ * Darkened with a deep translucent navy/midnight gradient (~95% opacity),
  * subtle left border line, and soft left drop shadow.
  */
 public final class DrawerPanelView extends LinearLayout {
@@ -41,7 +42,7 @@ public final class DrawerPanelView extends LinearLayout {
         setClipToPadding(false);
 
         borderPaint.setStyle(Paint.Style.STROKE);
-        borderPaint.setColor(Color.argb(42, 255, 255, 255));
+        borderPaint.setColor(Color.argb(35, 138, 180, 248)); // Couchy accent border tint
         borderPaint.setStrokeWidth(getResources().getDisplayMetrics().density * 1.2f);
     }
 
@@ -55,28 +56,28 @@ public final class DrawerPanelView extends LinearLayout {
         }
 
         final float density = getResources().getDisplayMetrics().density;
-        final float shadowWidth = density * 18f;
+        final float shadowWidth = density * 20f;
 
         // 1. Soft shadow cast outside the left edge onto the transparent background
         shadowPaint.setShader(new LinearGradient(
                 -shadowWidth, 0, 0, 0,
                 new int[]{
                         Color.argb(0, 0, 0, 0),
-                        Color.argb(85, 0, 0, 0)
+                        Color.argb(90, 0, 0, 0)
                 },
                 new float[]{0f, 1f},
                 Shader.TileMode.CLAMP
         ));
         canvas.drawRect(-shadowWidth, 0, 0, height, shadowPaint);
 
-        // 2. Strongly darkened semi-transparent black surface (~97% opacity)
+        // 2. Couchy signature midnight gradient (~95% deep opacity)
         bounds.set(0, 0, width, height);
         fillPaint.setStyle(Paint.Style.FILL);
         fillPaint.setShader(new LinearGradient(
                 0, 0, width, height,
                 new int[]{
-                        Color.argb(246, 8, 11, 16),
-                        Color.argb(252, 4, 6, 9)
+                        Color.argb(242, 13, 24, 35), // Couchy dark midnight top
+                        Color.argb(248, 17, 33, 47)  // Couchy dark midnight-blue bottom
                 },
                 new float[]{0f, 1f},
                 Shader.TileMode.CLAMP

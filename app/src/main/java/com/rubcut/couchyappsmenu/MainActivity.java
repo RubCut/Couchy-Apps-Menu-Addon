@@ -41,7 +41,7 @@ import java.util.concurrent.Executors;
 
 /**
  * Android TV Side Apps Drawer.
- * Slides in from the right edge with strongly darkened semi-transparent black surface.
+ * Slides in from the right edge with strongly darkened semi-transparent Couchy midnight surface.
  * The left space is completely transparent and dismisses the drawer on click.
  * Features 20dp rounded 16:9 cards, robust focus navigation, and app hiding.
  */
@@ -104,8 +104,7 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 if (position >= 0 && position < adapter.getCount()) {
                     focusedComponent = adapter.getItem(position).component.flattenToString();
-                    if (view != null) {
-                        view.setSelected(true);
+                    if (view != null && !view.hasFocus()) {
                         view.requestFocus();
                     }
                 }
@@ -247,7 +246,7 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
                     return true;
                 }
 
-                // Prevent cursor from escaping/disappearing when pressing left at column 0
+                // Keep focus inside column 0 rather than dropping
                 if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && (pos % 4 == 0)) {
                     return true;
                 }
@@ -270,7 +269,7 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
                     btnGetApps.requestFocus();
                     return true;
                 } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
-                    return true; // Keep focus on the button
+                    return true;
                 }
                 return false;
             }
@@ -311,7 +310,7 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
                     btnGetApps.requestFocus();
                     return true;
                 } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-                    return true; // Keep focus on the button
+                    return true;
                 }
                 return false;
             }
@@ -323,7 +322,6 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
             return;
         }
         final int targetPos = Math.min(col, adapter.getCount() - 1);
-        appGrid.requestFocus();
         appGrid.setSelection(targetPos);
         appGrid.post(new Runnable() {
             @Override
@@ -332,7 +330,8 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
                 View child = appGrid.getChildAt(targetPos - first);
                 if (child != null) {
                     child.requestFocus();
-                    child.setSelected(true);
+                } else {
+                    appGrid.requestFocus();
                 }
             }
         });
@@ -638,18 +637,14 @@ public final class MainActivity extends Activity implements AppGridAdapter.Liste
             return;
         }
 
-        int position = positionForComponent(apps, focusedComponent);
+        final int position = positionForComponent(apps, focusedComponent);
         appGrid.setSelection(position);
-        final int selection = position;
         appGrid.post(new Runnable() {
             @Override
             public void run() {
-                View focusedChild = appGrid.getChildAt(selection - appGrid.getFirstVisiblePosition());
+                View focusedChild = appGrid.getChildAt(position - appGrid.getFirstVisiblePosition());
                 if (focusedChild != null) {
                     focusedChild.requestFocus();
-                    focusedChild.setSelected(true);
-                } else {
-                    appGrid.requestFocus();
                 }
             }
         });

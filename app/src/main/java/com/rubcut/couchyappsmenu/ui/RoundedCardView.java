@@ -10,16 +10,18 @@ import android.util.AttributeSet;
 import android.widget.FrameLayout;
 
 /**
- * A rounded card with pronounced modern corner radius (20dp),
- * smooth focus scaling (1.08x) and white focus ring.
+ * A rounded card with Couchy Launcher style 20dp corner radius,
+ * smooth focus scaling (1.06x), and Couchy accent focus border (#8AB4F8).
  */
 public final class RoundedCardView extends FrameLayout {
+    private static final int ACCENT_FOCUS_COLOR = Color.rgb(138, 180, 248);
+
     private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
     private final Paint borderPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
     private final Path roundedPath = new Path();
     private final RectF cardBounds = new RectF();
     private final float radius;
-    private int tileColor = Color.rgb(36, 48, 60);
+    private int tileColor = Color.rgb(28, 38, 48);
     private boolean focusedVisual;
 
     public RoundedCardView(Context context) {
@@ -28,10 +30,10 @@ public final class RoundedCardView extends FrameLayout {
 
     public RoundedCardView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        radius = density(context) * 20f; // Prominently increased corner radius
+        radius = density(context) * 20f;
         borderPaint.setStyle(Paint.Style.STROKE);
         borderPaint.setStrokeWidth(density(context) * 2.5f);
-        borderPaint.setColor(Color.WHITE);
+        borderPaint.setColor(ACCENT_FOCUS_COLOR); // Couchy accent focus border (#8AB4F8)
         setWillNotDraw(false);
         setClipToPadding(false);
         setClipChildren(false);
@@ -49,9 +51,9 @@ public final class RoundedCardView extends FrameLayout {
         }
         focusedVisual = focused;
         animate()
-                .scaleX(focused ? 1.08f : 1f)
-                .scaleY(focused ? 1.08f : 1f)
-                .translationZ(focused ? density(getContext()) * 10f : 0f)
+                .scaleX(focused ? 1.06f : 1f)
+                .scaleY(focused ? 1.06f : 1f)
+                .translationZ(focused ? density(getContext()) * 8f : 0f)
                 .setDuration(focused ? 120 : 90)
                 .start();
         invalidate();
