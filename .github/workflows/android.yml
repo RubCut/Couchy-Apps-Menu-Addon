@@ -22,3 +22,10 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
       - name: Build debug APK
         run: ./gradlew assembleDebug
+      - name: Publish debug APK
+        uses: actions/upload-artifact@v5
+        with:
+          name: couchy-apps-debug-${{ github.run_number }}
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
