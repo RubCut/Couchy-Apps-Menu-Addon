@@ -1,0 +1,63 @@
+name: Signed APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: Human-readable version name shown in Android settings
+        required: true
+        default: 1.0.0
+
+permissions:
+  contents: read
+
+jobs:
+  release-apk:
+    name: Build signed release APK
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      VERSION_CODE: ${{ github.run_number }}
+      VERSION_NAME: ${{ inputs.version_name }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+      - name: Validate signing configuration
+        shell: bash
+        run: |
+          missing=()
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              missing+=("$name")
+            fi
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "Missing required repository secrets: ${missing[*]}" >&2
+            echo "See README.md: Stable signed APKs." >&2
+            exit 1
+          fi
+      - name: Restore release keystore
+        shell: bash
+        run: |
+          KEYSTORE_PATH="$RUNNER_TEMP/couchy-apps-release.keystore"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          chmod 600 "$KEYSTORE_PATH"
+          echo "ANDROID_KEYSTORE_FILE=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+      - name: Build signed release APK
+        run: ./gradlew :app:assembleRelease
+      - name: Publish APK artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: couchy-apps-${{ inputs.version_name }}-${{ github.run_number }}
+          path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 90

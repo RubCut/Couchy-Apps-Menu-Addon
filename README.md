@@ -53,6 +53,29 @@ adb shell am start -n com.rubcut.couchyappsmenu/.MainActivity
 
 Действие `com.rubcut.couchyappsmenu.OPEN` намеренно стабильно — его можно использовать в ярлыках и мапперах кнопок.
 
+## Стабильно подписанный APK в GitHub Actions
+
+В репозитории есть ручной workflow **Signed APK**. Он создаёт `app-release.apk`, подписывает его одним и тем же release-ключом и прикладывает файл к запуску как artifact на 90 дней. Запуск: **Actions → Signed APK → Run workflow**.
+
+Приватный ключ в репозиторий не добавляется. Один раз создайте и сохраните keystore в надёжном месте, затем добавьте в **Settings → Secrets and variables → Actions** следующие repository secrets:
+
+| Secret | Значение |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | содержимое keystore, закодированное одной строкой Base64 |
+| `ANDROID_KEYSTORE_PASSWORD` | пароль хранилища |
+| `ANDROID_KEY_ALIAS` | alias ключа |
+| `ANDROID_KEY_PASSWORD` | пароль ключа |
+
+Например, на машине с JDK 17:
+
+```bash
+keytool -genkeypair -keystore couchy-apps-release.p12 -storetype PKCS12 \
+  -alias couchy-apps -keyalg RSA -keysize 4096 -validity 10000
+base64 --wrap=0 couchy-apps-release.p12 > couchy-apps-release.base64
+```
+
+Содержимое `couchy-apps-release.base64` добавляется в первый secret. Не теряйте исходный `.p12` и не отправляйте его или пароли в чат: только этот ключ позволит выпускать обновления, которые Android TV установит поверх предыдущей версии. Workflow использует номер запуска как `versionCode`, поэтому новые APK корректно обновляют старые.
+
 ## Технические детали
 
 - **minSdk 21** (Android 5.0), `targetSdk` / `compileSdk` 34.
