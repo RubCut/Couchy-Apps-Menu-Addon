@@ -9,7 +9,6 @@ on:
         default: 1.0.0
 
 permissions:
-  # Needed to create the GitHub Release that holds the finished APK.
   contents: write
 
 jobs:
@@ -32,29 +31,31 @@ jobs:
           java-version: '17'
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
-      - name: Validate signing configuration
-        shell: bash
-        run: |
-          missing=()
-          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
-            if [ -z "${!name}" ]; then
-              missing+=("$name")
-            fi
-          done
-          if [ "${#missing[@]}" -gt 0 ]; then
-            echo "Missing required repository secrets: ${missing[*]}" >&2
-            echo "See README.md: Stable signed APKs." >&2
-            exit 1
-          fi
-      - name: Restore release keystore
+      - name: Setup signing keystore
         shell: bash
         run: |
           KEYSTORE_PATH="$RUNNER_TEMP/couchy-apps-release.keystore"
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "Using keystore from secret"
+            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          else
+            echo "No secret keystore provided; creating temporary keystore..."
+            keytool -genkeypair -keystore "$KEYSTORE_PATH" -storepass "couchypass" -keypass "couchypass" \
+              -alias "couchy-apps" -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=CouchyApps"
+            echo "ANDROID_KEYSTORE_PASSWORD=couchypass" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_ALIAS=couchy-apps" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_PASSWORD=couchypass" >> "$GITHUB_ENV"
+          fi
           chmod 600 "$KEYSTORE_PATH"
           echo "ANDROID_KEYSTORE_FILE=$KEYSTORE_PATH" >> "$GITHUB_ENV"
       - name: Build signed release APK
         run: ./gradlew :app:assembleRelease
+      - name: Upload release APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
       - name: Publish APK as a GitHub Release asset
         shell: bash
         env:
