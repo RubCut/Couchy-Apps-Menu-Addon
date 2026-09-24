@@ -20,8 +20,14 @@ jobs:
           java-version: '17'
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
-      # This workflow is a compile check only. Distribution is handled by the
-      # manual Signed APK workflow, which publishes a release asset instead of
-      # consuming the account-wide GitHub Actions artifact quota.
       - name: Build debug APK
         run: ./gradlew assembleDebug
+      # The debug APK is attached to this run as a downloadable artifact.
+      # Signed release builds stay in the manual Signed APK workflow, which
+      # publishes a GitHub Release asset instead.
+      - name: Upload debug APK artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: Couchy-Apps-debug
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
